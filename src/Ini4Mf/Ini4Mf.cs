@@ -23,12 +23,9 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.Text;
 
-namespace Ini4Net
+namespace Ini4Mf
 {
 
     #region Ini Syntax
@@ -63,13 +60,6 @@ namespace Ini4Net
         public char SectionHeaderEndToken { get; set; }
 
         /// <summary>
-        /// Set to true if cann add sections and keys at runtime
-        /// NOTE: This will stop the throwing of IniKeyNotFoundException as a new key will be created
-        /// default: False
-        /// </summary>
-        public bool AllowAddingSections { get; set; }
-
-        /// <summary>
         /// Initialise with our default values
         /// </summary>
         public IniSyntax()
@@ -78,7 +68,6 @@ namespace Ini4Net
             ValueSeparatorToken = '=';
             SectionHeaderEndToken = ']';
             SectionHeaderStartToken = '[';
-            AllowAddingSections = false;
         }
 
     }
@@ -129,16 +118,6 @@ namespace Ini4Net
                 }
                 throw new IniKeyNotFoundException("Key does not exist");
             }
-            set
-            {
-                if(Keys.Contains(keyName))
-                {
-                    Keys[keyName] = value;
-                } else
-                {
-                    Keys.Add(keyName, value);
-                }
-            }
         }
 
         public IEnumerator GetEnumerator()
@@ -157,7 +136,7 @@ namespace Ini4Net
     {
         #region Private
 
-        private Dictionary<string, string> _kp = new Dictionary<string, string>();
+        private Hashtable _kp = new Hashtable();
 
         #endregion
 
@@ -186,7 +165,7 @@ namespace Ini4Net
             {
                 if (Contains(key))
                 {
-                    return _kp[key];
+                    return _kp[key].ToString();
                 }
                 throw new IniKeyNotFoundException(key);
             }
@@ -228,7 +207,7 @@ namespace Ini4Net
         /// <returns>TRUE if key exists, FALSE otherwise</returns>
         public bool Contains(string key)
         {
-            return _kp.ContainsKey(key.Trim());
+            return _kp.Contains(key.Trim());
         }
 
         #endregion
@@ -242,7 +221,16 @@ namespace Ini4Net
         /// <returns>TRUE if key removed, FALSE otherwise</returns>
         public bool Remove(string key)
         {
-            return _kp.Remove(key.Trim());
+            bool rval = false;
+            try
+            {
+                _kp.Remove(key.Trim());
+                rval = true;
+            } catch
+            {
+                rval = false;
+            }
+            return rval;
         }
 
         #endregion
@@ -253,9 +241,9 @@ namespace Ini4Net
         /// Return a list of the keys in the collection
         /// </summary>
         /// <returns>A List of strings for the key names</returns>
-        public List<string> GetKeys()
+        public ICollection GetKeys()
         {
-            return new List<string>(_kp.Keys);
+            return _kp.Keys;
         }
 
         #endregion
@@ -266,9 +254,9 @@ namespace Ini4Net
         /// Return a list of the values in the collection
         /// </summary>
         /// <returns>A List of strings for the key values</returns>
-        public List<string> GetValues()
+        public ICollection GetValues()
         {
-            return new List<string>(_kp.Values);
+            return _kp.Values;
         }
 
         #endregion
@@ -284,7 +272,7 @@ namespace Ini4Net
 
     }
 
-    #endregion 
+    #endregion
 
     #region Ini
 
@@ -314,8 +302,8 @@ namespace Ini4Net
     /// </example>
     public class Ini : IEnumerable
     {
-        internal Dictionary<string, IniSection> _sections = new Dictionary<string, IniSection>();
-        public List<string> ErrorMessages = new List<string>();
+        internal Hashtable _sections = new Hashtable();
+        public ArrayList ErrorMessages = new ArrayList();
         public IniSyntax Syntax = new IniSyntax();
 
         #region Properties
@@ -329,59 +317,28 @@ namespace Ini4Net
         {
             get
             {
-                if (_sections.ContainsKey(sectionName))
+                if (_sections.Contains(sectionName))
                 {
-                    return _sections[sectionName];
+                    return (IniSection) _sections[sectionName];
                 }
-                if (!Syntax.AllowAddingSections)
-                {
-                    throw new IniSectionNotFoundException(string.Format("Section {0} not found", sectionName));
-                } else
-                {
-                    IniSection s = new IniSection();
-                    s.Name = sectionName;
-                    s.Keys = new KeyPairList();
-                    _sections.Add(sectionName, s);
-                    return s;
-                }
-            }
-            set
-            {
-                if(!_sections.ContainsKey(sectionName))
-                {
-                    _sections.Add(sectionName, value ?? new IniSection());
-                }
+                throw new IniSectionNotFoundException("Section " + sectionName + " not found");
             }
         }
 
         /// <summary>
         /// Return a list of the sections
         /// </summary>
-        public List<IniSection> Sections
+        public ICollection Sections
         {
-            get { return new List<IniSection>(_sections.Values); }
+            get { return _sections.Values; }
         }
 
         /// <summary>
         /// Return a list of the section names
         /// </summary>
-        public List<string> SectionNames
+        public ICollection SectionNames
         {
-            get { return new List<string>(_sections.Keys); }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        public Ini()
-        {
-            
-        }
-
-        public Ini(IniSyntax syntax)
-        {
-            Syntax = syntax;
+            get { return _sections.Keys; }
         }
 
         #endregion
@@ -396,21 +353,20 @@ namespace Ini4Net
         public bool Read(string fileName)
         {
             ErrorMessages.Clear();
-            if (string.IsNullOrEmpty(fileName))
+            if (String.IsNullOrEmpty(fileName))
             {
                 throw new ArgumentNullException("fileName");
             }
-            if (File.Exists(fileName))
-            {
-                return Read(File.ReadAllLines(fileName));
-            }
-            throw new FileNotFoundException();
+            FileStream fs = new FileStream(fileName, FileMode.Open);
+            Read(fs);
+            fs.Close();
+            return true;
         }
 
         private bool IsHeader(string s)
         {
-            return s.Contains(Syntax.SectionHeaderEndToken.ToString()) &&
-                   s.Contains(Syntax.SectionHeaderEndToken.ToString());
+            return String.Contains(s, Syntax.SectionHeaderEndToken.ToString()) &&
+                   String.Contains(s, Syntax.SectionHeaderEndToken.ToString());
         }
 
         /// <summary>
@@ -435,7 +391,7 @@ namespace Ini4Net
         /// </summary>
         /// <param name="contents"></param>
         /// <returns></returns>
-        public bool Read(string[] contents)
+        public bool Read(ArrayList contents)
         {
             ErrorMessages.Clear();
             /* if(Contents.Length < 1)
@@ -444,45 +400,48 @@ namespace Ini4Net
             }*/
             try
             {
-                Sections.Clear();
+                _sections.Clear();
                 string l;
                 IniSection s = null;
-                for (int i = 0; i < contents.Length; i++)
+                for (int i = 0; i < contents.Count; i++)
                 {
-                    l = contents[i].Trim();
-
-                    if (l.Length > 0)
+                    if (contents[i] != null)
                     {
-                        if (!IsComment(l[0]))
+                        l = (contents[i] as string).Trim();
+
+                        if (l.Length > 0)
                         {
-                            //if (l[0] == Syntax.SectionHeaderStartToken)
-                            if(IsHeader(l))
+                            if (!IsComment(l[0]))
                             {
+                                //if (l[0] == Syntax.SectionHeaderStartToken)
+                                if (IsHeader(l))
+                                {
+                                    if (s != null)
+                                    {
+                                        _sections.Add(s.Name, s);
+                                    }
+                                    s = new IniSection();
+
+                                    //
+                                    // ensure we do have a valid section header
+                                    //
+                                    s.Name = String.Contains(l, Syntax.SectionHeaderEndToken.ToString())
+                                                 ? l.Substring(1, l.Length - 2)
+                                                 : l.Substring(1, l.Length - 1);
+                                    continue;
+                                }
+
                                 if (s != null)
                                 {
-                                    _sections.Add(s.Name, s);
-                                }
-                                s = new IniSection();
-
-                                //
-                                // ensure we do have a valid section header
-                                //
-                                s.Name = l.Contains(Syntax.SectionHeaderEndToken.ToString())
-                                             ? l.Substring(1, l.Length - 2)
-                                             : l.Substring(1, l.Length - 1);
-                                continue;
-                            }
-
-                            if (s != null)
-                            {
-                                if (l.Contains(Syntax.ValueSeparatorToken.ToString()))
-                                {
-                                    int pos = l.IndexOf(Syntax.ValueSeparatorToken);
-                                    s.Keys.Add(l.Substring(0, pos), l.Substring(pos + 1));
-                                }
-                                else
-                                {
-                                    s.Keys.Add(l, l);
+                                    if (String.Contains(l, Syntax.ValueSeparatorToken.ToString()))
+                                    {
+                                        int pos = l.IndexOf(Syntax.ValueSeparatorToken);
+                                        s.Keys.Add(l.Substring(0, pos), l.Substring(pos + 1));
+                                    }
+                                    else
+                                    {
+                                        s.Keys.Add(l, l);
+                                    }
                                 }
                             }
                         }
@@ -509,14 +468,14 @@ namespace Ini4Net
         public bool Read(StreamReader sr)
         {
             ErrorMessages.Clear();
-            List<string> lines = new List<string>();
+            ArrayList lines = new ArrayList();
             while (!sr.EndOfStream)
             {
                 lines.Add(sr.ReadLine());
             }
             sr.Close();
             sr.Dispose();
-            return Read(lines.ToArray());
+            return Read(lines);
         }
 
         /// <summary>
@@ -533,7 +492,7 @@ namespace Ini4Net
             }
             if (!fs.CanRead)
             {
-                throw new FileLoadException("Can't read from filestream");
+                throw new Exception("Can't read from filestream");
             }
 
             try
@@ -561,16 +520,16 @@ namespace Ini4Net
         {
             if (File.Exists(fileName) && !overwrite)
             {
-                throw new FileLoadException("File Already Exists");
+                throw new Exception("File Already Exists");
             }
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("#");
-            sb.AppendLine("# AutoGenerated on " + DateTime.Now.ToShortDateString() + " " +
-                          DateTime.Now.ToShortTimeString());
+            sb.AppendLine("# AutoGenerated on " + DateTime.Now.ToString() + " " +
+                          DateTime.Now.ToString());
             sb.AppendLine("#");
             sb.Append(ToString());
-            File.WriteAllText(fileName, sb.ToString());
+            File.WriteAllBytes(fileName, sb.ToBytes());
         }
 
         #endregion
@@ -607,75 +566,6 @@ namespace Ini4Net
         }
 
         #endregion
-
-        #region Get
-
-        /// <summary>
-        /// Allow the ability of getting a key from a section and converting to a .NET data type
-        /// </summary>
-        /// <example>
-        /// Ini myIni = new Ini();
-        /// myIni["Other Section"]["Key3"] = "true";
-        /// bool b = myIni.Get<bool>("Other Section", "Key3");
-        /// </example>
-        /// <typeparam name="T">The data type to convert to</typeparam>
-        /// <param name="section">The section to look for</param>
-        /// <param name="key">The name of the key</param>
-        /// <returns>An object of type T or IniSectionNotFoundException</returns>
-        public T Get<T>(string section, string key)
-        {
-            if(string.IsNullOrEmpty(section) || string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException();
-            }
-            try
-            {
-                IniSection s = this[section];
-                return (T) TypeDescriptor.GetConverter(typeof (T)).ConvertFromString(s[key]);
-            } catch
-            {
-            }
-            throw new IniSectionNotFoundException(section);
-        }
-
-        #endregion 
-
-        #region Set
-
-        /// <summary>
-        /// Allow the ability to set the value of a key from a .NET data type
-        /// </summary>
-        /// <example>
-        /// Ini myIni = new Ini();
-        /// myIni["Other Section"]["Key3"] = "today";
-        /// myIni.Set("Other Section", DateTime.Now);
-        /// </example>
-        /// <typeparam name="T">The object</typeparam>
-        /// <param name="section">The section</param>
-        /// <param name="key">The key</param>
-        /// <param name="value">The data</param>
-        /// <returns>T</returns>
-        public T Set<T>(string section, string key, T value)
-        {
-            if (string.IsNullOrEmpty(section) || string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException();
-            }
-            try
-            {
-                IniSection s = this[section];
-                if(!s.Keys.Contains(key))
-                {
-                    s.Keys.Add(key, string.Empty);
-                }
-                s[key] = value.ToString();
-                return value;
-            }catch
-            {
-            }
-            throw new IniKeyNotFoundException(section);
-        }
-        #endregion
     }
 
     #endregion
@@ -696,7 +586,7 @@ namespace Ini4Net
         public IniKeyNotFoundException(string msg)
             : base(msg)
         {
-            
+
         }
     }
 

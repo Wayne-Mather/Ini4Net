@@ -102,6 +102,19 @@ namespace Demo_Project
                 }
             }
 
+
+            // try to create an INI file from scratch
+            IniSyntax syntax = new IniSyntax();
+            syntax.AllowAddingSections = true;
+            Ini myIni = new Ini(syntax);
+            myIni["My Section"]["My Key"] = "One";
+            myIni["Other Section"]["Key1"] = "1";
+            myIni["Other Section"]["Key2"] = "2";
+            myIni["Other Section"]["Key3"] = "true";
+            myIni.Write("myini.ini", true);
+            Console.WriteLine(myIni.Get<bool>("Other Section", "Key3"));
+            myIni.Set("Other Section", "Key2", DateTime.Now);
+            Console.WriteLine(myIni["Other Section"]["Key2"]);
             Console.WriteLine();
             Console.WriteLine("Press any key when ready.....");
             Console.ReadKey();
