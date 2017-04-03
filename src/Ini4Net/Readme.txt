@@ -1,7 +1,7 @@
 ﻿INI4NET
 -------
 
-Copyright (c) 2008-2011 Wayne Mather
+Copyright (c) 2008-2017 Wayne Mather
 All Rights Reserved
 
 ------------------------------------------------
