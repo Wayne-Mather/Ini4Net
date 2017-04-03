@@ -141,25 +141,25 @@ namespace Ini4Net.Tests
             }
             return new List<string>
             {
-                string.Format("{0} This is a test ini file", syntax.CommentTokens[0]),
+                $"{syntax.CommentTokens[0]} This is a test ini file",
                 "",
-                string.Format("this key {0} will go missing (not in a section)", syntax.ValueSeparatorToken),
+                $"this key {syntax.ValueSeparatorToken} will go missing (not in a section)",
                 "",
-                string.Format("{0}First Section{1}", syntax.SectionHeaderStartToken, syntax.SectionHeaderEndToken),
-                string.Format("value 1 {0} 1", syntax.ValueSeparatorToken),
-                string.Format("; value 2 {0} 2", syntax.ValueSeparatorToken),
-                string.Format("value 3 {0} 3", syntax.ValueSeparatorToken),
+                $"{syntax.SectionHeaderStartToken}First Section{syntax.SectionHeaderEndToken}",
+                $"value 1 {syntax.ValueSeparatorToken} 1",
+                $"; value 2 {syntax.ValueSeparatorToken} 2",
+                $"value 3 {syntax.ValueSeparatorToken} 3",
                 "",
-                string.Format("{0}Second Section{1}", syntax.SectionHeaderStartToken, syntax.SectionHeaderEndToken),
-                string.Format("value 10 {0} 10", syntax.ValueSeparatorToken),
-                string.Format("value 20 {0} 20", syntax.ValueSeparatorToken),
+                $"{syntax.SectionHeaderStartToken}Second Section{syntax.SectionHeaderEndToken}",
+                $"value 10 {syntax.ValueSeparatorToken} 10",
+                $"value 20 {syntax.ValueSeparatorToken} 20",
                 "",
-                string.Format("value 30 {0} 30", syntax.ValueSeparatorToken),
+                $"value 30 {syntax.ValueSeparatorToken} 30",
                 "",
-                string.Format("{0}Third Section{1}", syntax.SectionHeaderStartToken, syntax.SectionHeaderEndToken),
+                $"{syntax.SectionHeaderStartToken}Third Section{syntax.SectionHeaderEndToken}",
                 "",
-                string.Format("{0}Fourth Section", syntax.SectionHeaderStartToken),
-                string.Format("{0}", syntax.SectionHeaderStartToken)
+                $"{syntax.SectionHeaderStartToken}Fourth Section",
+                $"{syntax.SectionHeaderStartToken}"
             }.ToArray();
         }
 
